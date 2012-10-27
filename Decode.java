@@ -1,6 +1,4 @@
-import java.util.*;
-import java.lang.*;
-import java.awt.*;
+import java.util.Vector;
 
 /**
  * Decode handles the operation for the decode stage of pipelined execution.

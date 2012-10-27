@@ -1,6 +1,3 @@
-import java.util.*;
-import java.lang.*;
-import java.awt.*;
 
 /**
  * Stage is a template class (not abstract) for each of the five pipeline stages.
