@@ -12,14 +12,6 @@ import java.util.Scanner;
  */
 public class Console {
 
-	/**
-	 * 
-	 */
-	public Console() {
-		// TODO Auto-generated constructor stub
-	}
-
-
 	static ReservationStation station;
 	/**
 	 * @param args
@@ -34,11 +26,15 @@ public class Console {
 				String temp = sc.nextLine();
 				System.out.println(temp);
 				Instruction insttemp = new Instruction(temp);
-				if(insttemp.valid())
+				try {
 					station.add(insttemp);
-				else
+				} catch (Exception e) {
 					System.out.println("instruction format error");
+				}
 			}
+			while(station.isrunning())
+				station.step();
+			
 			sc.close();
 		}
 	}

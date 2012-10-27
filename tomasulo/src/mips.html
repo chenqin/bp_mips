@@ -1,0 +1,113 @@
+<html>
+<head>
+<title>
+A MIPS Computer Simulator in Java
+</title>
+</head>
+<BODY BACKGROUND="images/bluesqx.gif">
+<h2> A MIPS Computer Simulator Applet</h2>
+<!-------------------------------------------------------->
+This computer demonstrates the workings of a simplified MIPS computer with its pipeline. It
+has 32 memory locations. 
+<P>This demonstrates some of the aspects of pipelining in computer design and programming. 
+<P>This applet was originally written by Michael Chamberlain and John Elmore for class <A HREF="http://www.ece.gatech.edu/research/ccss/academic/Java/1997.Summer/" TARGET="_top">EE3833</A>.
+The class was taught by <A HREF="http://www.ece.gatech.edu/users/steved" TARGET="_top">Stephen P. DeWeerth</A> of
+<A HREF="http://www.gatech.edu/" TARGET="_top">Georgia Institute of Technology.</A> 
+Several modifications were added by Curt Hill.
+<P>There are several types of instructions for the MIPS processors. The R type has one destination
+registers and two source registers for operands. (A register is preceded by a $ sign so register zero is denoted by $0.) 
+The I type has two registers and an immediate instruction. The M type operations have a register
+followed by an immediate offset and base register. The Branch instructions have two registers and 
+an immediate operand. Register zero always retains a zero and cannot be stored into.
+<P>The following table shows some of the instructions that are available for this computer:
+<table border>
+<tr>
+<th align=center>Mnemonic</th>
+<th align=center>Type</th>
+<th align=center>Operand 1</th>
+<th align=center>Operand 2</th> 
+<th align=center>Operand 3</th> 
+<th align=center>Description</th>
+</tr>
+
+<tr>
+<td>ADD</td>
+<td>R</TD>
+<td align=center>Dest</td>
+<td align=center>Source1</td>
+<td align=center>Source2</td>
+<td>Add value addressed by the two source operands to the dest operand.<BR>
+Add $3 $2 $1 - Source address is sum of register 2 and 1 and placed in register 3.</td>
+</tr>
+<tr>
+<td>ADDI</td>
+<td>I</TD>
+<td align=center>Dest</td>
+<td align=center>Source</td>
+<td align=center>Immediate</td>
+<td>Add value addressed by the two source operands to the dest operand.<BR>
+Add $1 $2 20 - Add 20 to the contents of register 1 and place in register 2.</td>
+</tr>
+<tr>
+<td>BEQ</td>
+<td>I</TD>
+<td align=center>First Source reg.</td>
+<td align=center>Second Source reg.</td>
+<td align=center>Immediate offset value</td>
+<td>Compare the first two registers and move the immediate to the Program Counter, if equal.<BR>
+BE $5 $2 10 - Compare registers 5 and 2 and branch to location 10 if they are equal.</td>
+</tr>
+<tr>
+<td>BNE</td>
+<td>I</TD>
+<td align=center>First Source reg.</td>
+<td align=center>Second Source reg.</td>
+<td align=center>Immediate offset value</td>
+<td>Compare the first two registers and move the immediate to the Program Counter, if not equal.<BR>
+BE $5 $2 10 - Compare registers 5 and 2 and branch to location 10 if they are not equal.</td>
+</tr>
+<tr>
+<td>LW</td>
+<td>I</TD>
+<td align=center>Dest. reg.</td>
+<td align=center>Offset</td>
+<td align=center>(Base reg.)</td>
+<td>Load the destination register with the memory value computed by the sum of the offset and the base register.<BR>
+LW $1 15($2) - Add 15 to register 2 to compute the memory location to load into register 1.</td>
+</tr>
+<tr>
+<td>SW</td>
+<td>I</TD>
+<td align=center>Source reg.</td>
+<td align=center>Offset</td>
+<td align=center>(Base reg.)</td>
+<td>Save the value in the first operand into the memory address computed by the sum of the offset and the base register.<BR>
+SW $1 25($2) - Store the contents of register 1 in the memory location whose address is the sum of 25 and register 2.</td>
+</tr>
+</table>
+<h2>An explanation of the windows.</h2>
+<P><B>Instruction</B> - Shows the memory that contains instructions. Each line contains an address and the instruction. In an actual machine each instruction would occupy several memory cells and the contents would always be numeric.
+<BR><B>Memory</B> - The data memory. Each line contains an address and the contents of that memory cell. In an actual machine the data and instructions would be in the same memory.
+<BR><B>Register file</B> - The 32 registers of the machine. Each line specifies the register number and contents. Register 0 cannot be changed. A register is specified by preceding the register number with a $ when forming an instruction.
+<BR><B>Messages</B> - The explanatory messages produced by the simulator. These may be errors about the use of the simulator or format of the instructions. They may also indicate the actions of the pipeline stages. 
+<P><B>Stages</B> - The MIPS pipeline has five stages: Fetch, Decode, Execute, Memory and Write Back. Each shows the address of the instruction they are working on and other pertinant information.
+<BR><B>Instructions</B> - The number of instructions that have been completed.
+<BR><B>Cycles</B> - The number of steps that have been performed.
+<BR><B>CPI</B> - Cycles Per Instruction. The average number of cycles per completed instruction. The smaller this value the better the program was able to take advantage of the pipeline parallelism.
+<h2>An explanation of the buttons.</h2>
+<P><B>Reset</B> - Clears messages, registers, pipeline stages and data memory. This suspends any execution in progress, but does not clear the instructions.
+<BR><B>Clear instructions</B> - Clears everything. Similar to Reset but it also clears the instructions.
+<BR><B>Help</B> - Opens a new window with a summary of instructions that is not as detailed as the above.
+<BR><B>Step</B> - Advances the processing of every stage by one step. This is not the same as a single step on most simulators since it does not accomplish an entire instruction.
+<BR><B>Delete Instruction</B> - Deletes the highlighted instruction from the Instruction pane and moves following ones up. An instruction must be highlighted.
+<BR><B>Run</B> - Executes N steps, where N is obtained from the text field immediately to the right of the button. Run 1 is the same as Step. If the field is empty or less than one an error is displayed. If the number is larger than the number of steps needed to complete the program the program will terminate when the first non-instruction is executed.
+<BR><B>Add Instruction</B> - Adds one instruction after checking it to the end of the program being built in the Instruction pane. The field to the right of the button contains the instruction to be added. If the instruction is incorrect a message is displayed in the Message pane.
+<BR><B>Change Instruction</B> - Replace the instruction highlighted in the Instruction pane with the instruction that is in the field immediately to the right. The instruction is checked in a way similar to the Add Instruction button.
+<P><! Of the next two: first is debug version, second is production > 
+<!APPLET CODE="GUI.class"  WIDTH=800 HEIGHT=500>
+<APPLET CODE="GUI.class" archive="mips.jar" WIDTH=800 HEIGHT=500>
+</APPLET>
+<P><A HREF="MIPS.zip">The Java source in a zip file.</A>
+<P><A HREF="simulators.htm">Return to the simulators page.</A>
+</body>
+</html>
