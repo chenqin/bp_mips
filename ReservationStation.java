@@ -27,10 +27,17 @@ public class ReservationStation {
 	 * */
 	
 	class ReservationEntry{
-		boolean isALUInUse;
+		int opcode;
 		Instruction Instr;
 		Instruction vj;
 		Instruction vk;
+		boolean qj;
+		boolean qk;
+		
+		public ReservationEntry(Instruction instroc){
+			Instr = instroc;
+			opcode = Instr.opcode;
+		}
 		public void update(){
 			
 		}
@@ -53,8 +60,12 @@ public class ReservationStation {
 		_instructions = new ArrayList<Instruction>();
 	}
 	
-	public void add(Instruction newinst){
-		_instructions.add(newinst);
+	public void add(Instruction newinst) throws Exception{
+		if(newinst.valid()){
+			_instructions.add(newinst);
+			_resentries.add(new ReservationEntry(newinst));
+		}else
+			throw new Exception("Instruction not valid");
 	}
 	
 	protected void unrolling(){
