@@ -56,6 +56,11 @@ public class Simulator
 	 * @see Stages
 	 */
     public static Stages stg;
+    
+    /**
+     * the reservation station in simulator
+     */
+    public static ReservationStation rs;
 
     /**
 	 * creates a Simulator object and initialzes each of its components.
@@ -84,12 +89,11 @@ public class Simulator
 	 * has completed execution.
 	 */
     public boolean step() {
-    	
+    	rs.step();
 		/**
 		 * indicates whether the first four stages of the pipeline all contain NOPs.
 		 */
     	boolean allNOPs = false;
-    	
         // move instructions the pipeline by one stage
         myWriteBack.myInstruction = myMemory.myInstruction;
         myMemory.myInstruction = myExecute.myInstruction;

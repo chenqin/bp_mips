@@ -1,3 +1,7 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+
 
 /**
  * Esentially, tomasulo algorithm issues and stalls
@@ -8,6 +12,7 @@
  *
  */
 public class ReservationStation {
+	int pc = 0;
 	/**
 	 * indicates if register in use
 	 * */
@@ -26,36 +31,47 @@ public class ReservationStation {
 		Instruction Instr;
 		Instruction vj;
 		Instruction vk;
-	}
-	
-	RegisterInfo[] _regsinfo;
-	ReservationEntry[] _resentries;
-	
-	public ReservationStation(int regnum, int alunum) {
-		_regsinfo = new RegisterInfo[regnum];
-		_resentries = new ReservationEntry[alunum];
-	}
-	
-	void reNaming(Instruction cur_in){
-		
-	}
-	
-	/**
-	 * control if instruction fetch could be issued
-	 * if so, fill available entry in reservation station
-	 * @param cur_in
-	 */
-	void fillEntry(Instruction cur_in){
-		for(ReservationEntry re : _resentries){
+		public void update(){
 			
 		}
-		//stall pc
 	}
 	
-	public void step(Instruction cur_instruct){
-		//check register renaming if there is unrolling possibility
-		reNaming(cur_instruct);
-		fillEntry(cur_instruct);
+	List<RegisterInfo> _regsinfo;
+	List<ReservationEntry> _resentries;
+	List<Instruction> _instructions;
+
+	protected static ReservationStation instance;
+	public static ReservationStation getStation(){
+		if(instance == null)
+			instance = new ReservationStation();
+		return instance;
 	}
 
+	private ReservationStation() {
+		_regsinfo = new ArrayList<RegisterInfo>();
+		_resentries = new ArrayList<ReservationEntry>();
+		_instructions = new ArrayList<Instruction>();
+	}
+	
+	public void add(Instruction newinst){
+		_instructions.add(newinst);
+	}
+	
+	protected void unrolling(){
+		//identify loop and unroll by renaming varables
+		//when it meets a branch it go 
+	}
+	
+	public void execute(){
+		
+	}
+	/**
+	 * called by simulator to trigger reservation internal instructions
+	 * stages change
+	 */
+	public void step(){
+		pc++;
+		for(ReservationEntry rentry : _resentries)
+			rentry.update();
+	}
 }
