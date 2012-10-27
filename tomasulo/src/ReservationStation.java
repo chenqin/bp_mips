@@ -3,8 +3,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ReservationStation.ReservationEntry;
-
 
 /**
  * Esentially, tomasulo algorithm issues and stalls
@@ -19,33 +17,41 @@ import ReservationStation.ReservationEntry;
  *
  */
 public class ReservationStation {
+	
+	public enum STATUS {
+	    UNISSUED, ISSUE, EXECUTE, WRITEBACK, DONE
+	}
+	
 	int pc = 0;
-	/**
-	 * indicates if register in use
-	 * */
-	/**
-	 * Reservation Entry
-	 * qj and qk is the entry that produce source 
-	 * rj and rk indicates whether source are avalaible
-	 * result is produced when current insturction finished executed
-	 * */
+
+	
+	static class Execution{
+		public static void issue(Instruction inst){
+			
+		}
+		public static void execute(Instruction inst){
+			
+		}
+		public static void writeback(Instruction inst){
+			
+		}
+	}
 	
 	class ReservationEntry{
 		int opcode;
 		Instruction Instr;
 		int qj;
 		int qk;
+		public STATUS status;
 		boolean rj;
 		boolean rk;
-		boolean isdone;
-		Object result;
 		
 		public ReservationEntry(Instruction instroc){
 			Instr = instroc;
 			opcode = Instr.opcode;
 			this.qj = Instr.rs;
 			this.qk = Instr.rt;
-			isdone = false;
+			this.status = STATUS.UNISSUED;
 		}
 		
 		public boolean isInstalled(){
@@ -54,17 +60,29 @@ public class ReservationStation {
 		}
 		
 		public void update(){
-			ReservationEntry entry = ReservationStation.getStation()._regmap.get(Integer.valueOf(this.qj));
-			if(entry != null && entry.isdone == false){
-				//install a cycle here
+			switch(this.status){
+				case UNISSUED:
+					this.status = STATUS.ISSUE;
+				case ISSUE:
+					ReservationEntry entry = ReservationStation.getStation()._regmap.get(Integer.valueOf(this.qj));
+					if(entry != null && entry.status == STATUS.DONE){
+						//install a cycle here
+						break;
+					}
+					entry = ReservationStation.getStation()._regmap.get(Integer.valueOf(this.qk));
+					if(entry != null && entry.status == STATUS.DONE){
+						//install a cycle here
+						break;
+					}
+					this.status = STATUS.EXECUTE;
+				case EXECUTE:
+					Execution.execute(this.Instr);
+					this.status = STATUS.WRITEBACK;
+				case WRITEBACK:
+					Execution.writeback(this.Instr);
+					this.status = STATUS.DONE;
 			}
-			entry = ReservationStation.getStation()._regmap.get(Integer.valueOf(this.qk));
-			if(entry != null && entry.isdone == false){
-				//install a cycle here
-			}
-			
-			//execute here assume infinite ALU
-			
+				
 		}
 	}
 	
