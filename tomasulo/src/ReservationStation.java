@@ -22,18 +22,59 @@ public class ReservationStation {
 	    UNISSUED, ISSUE, EXECUTE, WRITEBACK, DONE
 	}
 	
-	int pc = 0;
+	int clockcounter = 0;
 
 	
 	static class Execution{
-		public static void issue(Instruction inst){
+		
+		/**
+		 * check if destination register is occupied, if not
+		 * okay to issue
+		 * @param inst
+		 * @param status
+		 */
+		public static void tryissue(Instruction inst,ReservationEntry entry){
+			ReservationEntry des = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rd));
 			
+			if(des == null)
+				entry.status = STATUS.ISSUE;
+			
+			//TODO : here can issue by register renaming if addational registers are avaliable
+			//trick is it will need to scan instructions list for further name updates
 		}
-		public static void execute(Instruction inst){
+		
+		/**
+		 * check if reading registers are occupied
+		 * if not okay to read
+		 * @param inst
+		 */
+		public static void tryexecute(Instruction inst,ReservationEntry entry){
+			ReservationEntry reg1 = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rs));
+			ReservationEntry reg2 = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rt));
 			
+			if(reg1 == null && reg2 == null){
+				//TODO: port read and execute log here
+				entry.status = STATUS.EXECUTE;
+			}
 		}
-		public static void writeback(Instruction inst){
+		
+		/**
+		 * check if destination is occupied, 
+		 * if not , update map to current entry, okay to write back
+		 * @param inst
+		 */
+		public static void trywriteback(Instruction inst,ReservationEntry entry){
+			ReservationEntry des = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rd));
 			
+			//if no one occupy destination register, take this
+			if(des == null){
+				ReservationStation.getStation()._regmap.put(Integer.valueOf(inst.rd), entry);
+				//TODO: port write back logic here, write back java
+				entry.status = STATUS.DONE;
+			}else{
+				//wait for next tick
+				return;
+			}
 		}
 	}
 	
@@ -54,33 +95,16 @@ public class ReservationStation {
 			this.status = STATUS.UNISSUED;
 		}
 		
-		public boolean isInstalled(){
-			if(rj && rk) return true;
-			else return false;
-		}
-		
 		public void update(){
 			switch(this.status){
 				case UNISSUED:
-					this.status = STATUS.ISSUE;
+					Execution.tryissue(this.Instr,this);
 				case ISSUE:
-					ReservationEntry entry = ReservationStation.getStation()._regmap.get(Integer.valueOf(this.qj));
-					if(entry != null && entry.status == STATUS.DONE){
-						//install a cycle here
-						break;
-					}
-					entry = ReservationStation.getStation()._regmap.get(Integer.valueOf(this.qk));
-					if(entry != null && entry.status == STATUS.DONE){
-						//install a cycle here
-						break;
-					}
-					this.status = STATUS.EXECUTE;
+					Execution.tryexecute(this.Instr,this);
 				case EXECUTE:
-					Execution.execute(this.Instr);
-					this.status = STATUS.WRITEBACK;
-				case WRITEBACK:
-					Execution.writeback(this.Instr);
-					this.status = STATUS.DONE;
+					Execution.trywriteback(this.Instr,this);
+				//case WRITEBACK:
+				//	Execution.cleanup(this.Instr,this);
 			}
 				
 		}
@@ -115,6 +139,11 @@ public class ReservationStation {
 		_regmap = new HashMap<Integer, ReservationEntry>();
 	}
 	
+	/**
+	 * add instruction to insturction queue
+	 * @param newinst
+	 * @throws Exception
+	 */
 	public void add(Instruction newinst) throws Exception{
 		if(newinst.valid()){
 			_instructions.add(newinst);
@@ -128,7 +157,8 @@ public class ReservationStation {
 	 * stages change
 	 */
 	public void step(){
-		pc++;
+		clockcounter++;
+		//update all entries in this clock, hum, may be some entries is more reasonable
 		for(ReservationEntry rentry : _resentries)
 			rentry.update();
 	}
@@ -140,7 +170,7 @@ public class ReservationStation {
 	 */
 	public boolean isrunning() {
 		for(ReservationEntry rentry : _resentries)
-			if(!rentry.isdone) return false;
+			if(rentry.status != STATUS.DONE) return false;
 		return true;
 	}
 }

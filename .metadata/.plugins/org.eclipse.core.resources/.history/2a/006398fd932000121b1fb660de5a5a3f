@@ -1,0 +1,176 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * Esentially, tomasulo algorithm issues and stalls
+ * instructions based on reservation station condition check
+ * so it will read instructions and do couple of optimization 
+ * filling into registeration station and then execute 
+ * @author chen
+ *
+ */
+/**
+ * @author chen
+ *
+ */
+public class ReservationStation {
+	
+	public enum STATUS {
+	    UNISSUED, ISSUE, EXECUTE, WRITEBACK, DONE
+	}
+	
+	int clockcounter = 0;
+
+	
+	static class Execution{
+		
+		/**
+		 * check if destination register is occupied, if not
+		 * okay to issue
+		 * @param inst
+		 * @param status
+		 */
+		public static void tryissue(Instruction inst,ReservationEntry entry){
+			ReservationEntry des = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rd));
+			
+			if(des == null)
+				entry.status = STATUS.ISSUE;
+			
+			//TODO : here can issue by register renaming if addational registers are avaliable
+			//trick is it will need to scan instructions list for further name updates
+		}
+		
+		/**
+		 * check if reading registers are occupied
+		 * if not okay to read
+		 * @param inst
+		 */
+		public static void tryexecute(Instruction inst,ReservationEntry entry){
+			ReservationEntry reg1 = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rs));
+			ReservationEntry reg2 = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rt));
+			
+			if(reg1 == null && reg2 == null){
+				//TODO: port read and execute log here
+				entry.status = STATUS.EXECUTE;
+			}
+		}
+		
+		/**
+		 * check if destination is occupied, 
+		 * if not , update map to current entry, okay to write back
+		 * @param inst
+		 */
+		public static void trywriteback(Instruction inst,ReservationEntry entry){
+			ReservationEntry des = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rd));
+			
+			//if no one occupy destination register, take this
+			if(des == null){
+				ReservationStation.getStation()._regmap.put(Integer.valueOf(inst.rd), entry);
+				//TODO: port write back logic here, write back java
+				entry.status = STATUS.DONE;
+			}else{
+				//wait for next tick
+				return;
+			}
+		}
+	}
+	
+	class ReservationEntry{
+		int opcode;
+		Instruction Instr;
+		int qj;
+		int qk;
+		public STATUS status;
+		boolean rj;
+		boolean rk;
+		
+		public ReservationEntry(Instruction instroc){
+			Instr = instroc;
+			opcode = Instr.opcode;
+			this.qj = Instr.rs;
+			this.qk = Instr.rt;
+			this.status = STATUS.UNISSUED;
+		}
+		
+		public void update(){
+			switch(this.status){
+				case UNISSUED:
+					Execution.tryissue(this.Instr,this);
+				case ISSUE:
+					Execution.tryexecute(this.Instr,this);
+				case EXECUTE:
+					Execution.trywriteback(this.Instr,this);
+				//case WRITEBACK:
+				//	Execution.cleanup(this.Instr,this);
+			}
+				
+		}
+	}
+	
+	/**
+	 * entries in reservation station
+	 * each map to one instruction
+	 */
+	List<ReservationEntry> _resentries;
+	
+	/**
+	 * usage of each register
+	 */
+	Map<Integer,ReservationEntry> _regmap;
+	List<Instruction> _instructions;
+
+	protected static ReservationStation instance;
+	
+	/**
+	 * @return reservation station singleton instance
+	 */
+	public static ReservationStation getStation(){
+		if(instance == null)
+			instance = new ReservationStation();
+		return instance;
+	}
+
+	private ReservationStation() {
+		_resentries = new ArrayList<ReservationEntry>();
+		_instructions = new ArrayList<Instruction>();
+		_regmap = new HashMap<Integer, ReservationEntry>();
+	}
+	
+	/**
+	 * add instruction to insturction queue
+	 * @param newinst
+	 * @throws Exception
+	 */
+	public void add(Instruction newinst) throws Exception{
+		if(newinst.valid()){
+			_instructions.add(newinst);
+			_resentries.add(new ReservationEntry(newinst));
+		}else
+			throw new Exception("Instruction not valid");
+	}
+	
+	/**
+	 * called by simulator to trigger reservation internal instructions
+	 * stages change
+	 */
+	public void step(){
+		clockcounter++;
+		//update all entries in this clock, hum, may be some entries is more reasonable
+		for(ReservationEntry rentry : _resentries)
+			rentry.update();
+	}
+
+	/**
+	 * check if all instructions has been executed
+	 * if so, exit
+	 * @return
+	 */
+	public boolean isrunning() {
+		for(ReservationEntry rentry : _resentries)
+			if(rentry.status != STATUS.DONE) return false;
+		return true;
+	}
+}
