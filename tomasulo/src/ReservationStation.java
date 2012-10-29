@@ -26,7 +26,7 @@ public class ReservationStation {
 
 	
 	static class Execution{
-		
+		public static MemoryType regFile = new MemoryType();
 		/**
 		 * check if destination register is occupied, if not
 		 * okay to issue
@@ -49,12 +49,97 @@ public class ReservationStation {
 		 * @param inst
 		 */
 		public static void tryexecute(Instruction inst,ReservationEntry entry){
-			ReservationEntry reg1 = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rs));
-			ReservationEntry reg2 = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rt));
+			ReservationStation instance = ReservationStation.getStation();
+			ReservationEntry reg1 = instance._regmap.get(Integer.valueOf(inst.rs));
+			ReservationEntry reg2 = instance._regmap.get(Integer.valueOf(inst.rt));
 			
 			if(reg1 == null && reg2 == null){
-				//TODO: port read and execute log here
+				//occupy the register
+				instance._regmap.put(Integer.valueOf(inst.rs), entry);
+				instance._regmap.put(Integer.valueOf(inst.rt), entry);
+				
+				Instruction myInstruction = inst;
+				String str;
+				 
+		          switch(myInstruction.opcode) {
+		            case 24: // MUL -- 8 bit 
+		                  myInstruction.rdValue = (myInstruction.rsValue & 0x00FF) * 
+		                  (myInstruction.rtValue & 0x00FF);      
+		                  break;         
+		            case 26: // DIV -- 8 bit
+		                  myInstruction.rdValue = (myInstruction.rsValue & 0x00FF) / 
+		                  (myInstruction.rtValue & 0x00FF);               
+		                  break;         
+		            case 32: // ADD
+		                  myInstruction.rdValue = myInstruction.rsValue + myInstruction.rtValue;
+		                  break;         
+		            case 34: // SUB
+		                  myInstruction.rdValue = myInstruction.rsValue - myInstruction.rtValue; 
+		                  break;         
+		            case 35: // LW
+		            case 43: // SW
+		                  // rdValue becomes the memory address with which to load/store. 
+		                  // For SW, rtValue is the value to store into memory.
+		                  myInstruction.rdValue = myInstruction.rsValue + myInstruction.immediate; 
+		                  break;         
+		            case 50: // SLL              
+		                  myInstruction.rdValue = myInstruction.rsValue << myInstruction.rtValue;               
+		                  break;         
+		            case 51: // SRL              
+		                 myInstruction.rdValue = myInstruction.rsValue >> myInstruction.rtValue;               
+		                  break;         
+		            case 36: // AND               
+		                  myInstruction.rdValue = myInstruction.rsValue & myInstruction.rtValue;               
+		                  break;         
+		            case 37: // OR              
+		                  myInstruction.rdValue = myInstruction.rsValue | myInstruction.rtValue;               
+		                  break;         
+		            case 38: // XOR              
+		                  myInstruction.rdValue = myInstruction.rsValue ^ myInstruction.rtValue; 
+		                  break;         
+		            case 60: // SLT              
+		                  if (myInstruction.rsValue < myInstruction.rtValue) 
+		                  	myInstruction.rdValue = 1;
+		                  else
+		                        myInstruction.rdValue = 0;               
+		                  break;         
+		            case 61: // SLE              
+		                  if (myInstruction.rsValue <= myInstruction.rtValue) 
+		                  	myInstruction.rdValue = 1;
+		                  else
+		                        myInstruction.rdValue = 0;               
+		                  break;         
+		            case 62: // SEQ              
+		                  if (myInstruction.rsValue == myInstruction.rtValue) 
+		                  	myInstruction.rdValue = 1;
+		                  else
+		                        myInstruction.rdValue = 0;               
+		                  break;         
+		            case 63: // SGT              
+		                  if (myInstruction.rsValue > myInstruction.rtValue) 
+		                  	myInstruction.rdValue = 1;
+		                  else
+		                        myInstruction.rdValue = 0;               
+		                  break;         
+		            case 64: // SGE              
+		                  if (myInstruction.rsValue >= myInstruction.rtValue) 
+		                  	myInstruction.rdValue = 1;
+		                  else
+		                        myInstruction.rdValue = 0;               
+		                  break;         
+		            case 70: // BEQ              
+		            case 71: // BNE 
+		                  if (((myInstruction.opcode == 71) && (myInstruction.rsValue != myInstruction.rtValue)) 
+		                      || ((myInstruction.opcode == 70)&&(myInstruction.rsValue == myInstruction.rtValue))){
+//		                          myFetch.PC = myInstruction.immediate - 1; // next instruct will be br addr
+//		                          myFetch.myInstruction.flush = true;
+//		                          myDecode.myInstruction.flush = true;
+		                  }
+		                  break;
+		         }
 				entry.status = STATUS.EXECUTE;
+				//release the registers
+				instance._regmap.remove(entry);
 			}
 		}
 		
@@ -69,8 +154,28 @@ public class ReservationStation {
 			//if no one occupy destination register, take this
 			if(des == null){
 				ReservationStation.getStation()._regmap.put(Integer.valueOf(inst.rd), entry);
-				//TODO: port write back logic here, write back java
+				Instruction myInstruction = inst;
+				switch( myInstruction.opcode) {
+	            case 0:   // NOP
+	            case 43:  // SW
+	            case 70:  // BEQ
+	            case 71:  // BNE
+	                break;
+	            default:
+	                 // write to dest register (if not $0)
+	                 if ((myInstruction.rd != 0) && (myInstruction.opcode != 0))
+	                      if (myInstruction.flush == false) {
+	                    		regFile.putValue( myInstruction.rdValue,myInstruction.rd );
+	                    		//if (myInstruction.rd < 10)
+	                       		//	str = "R0"+myInstruction.rd+": "+myInstruction.rdValue;
+	                    		//else
+	                       		//	str = "R"+myInstruction.rd+": "+myInstruction.rdValue;
+	                    		//lb.RF.replaceItem(str, myInstruction.rd);
+	                  		}
+				}
 				entry.status = STATUS.DONE;
+				//release the register
+				ReservationStation.getStation()._regmap.remove(entry);
 			}else{
 				//wait for next tick
 				return;
