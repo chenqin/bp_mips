@@ -2,6 +2,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 
 /**
@@ -38,7 +39,8 @@ public class ReservationStation {
 			
 			if(des == null)
 				entry.status = STATUS.ISSUE;
-			
+			else
+				Logger.getLogger("issue").log(null, "issue stall");
 			//TODO : here can issue by register renaming if addational registers are avaliable
 			//trick is it will need to scan instructions list for further name updates
 		}
@@ -82,7 +84,7 @@ public class ReservationStation {
 		                  // For SW, rtValue is the value to store into memory.
 		                  myInstruction.rdValue = myInstruction.rsValue + myInstruction.immediate; 
 		                  break;         
-		            case 50: // SLL              
+		            case 50: // SLL
 		                  myInstruction.rdValue = myInstruction.rsValue << myInstruction.rtValue;               
 		                  break;         
 		            case 51: // SRL              
@@ -138,9 +140,12 @@ public class ReservationStation {
 		                  break;
 		         }
 				entry.status = STATUS.EXECUTE;
+				
 				//release the registers
-				instance._regmap.remove(entry);
-			}
+				instance._regmap.remove(Integer.valueOf(inst.rs));
+				instance._regmap.remove(Integer.valueOf(inst.rt));
+			}else
+				Logger.getLogger("execute").log(null, "execute stall");
 		}
 		
 		/**
@@ -175,9 +180,9 @@ public class ReservationStation {
 				}
 				entry.status = STATUS.DONE;
 				//release the register
-				ReservationStation.getStation()._regmap.remove(entry);
+				ReservationStation.getStation()._regmap.remove(Integer.valueOf(inst.rd));
 			}else{
-				//wait for next tick
+				Logger.getLogger("writeback").log(null, "writeback stall");
 				return;
 			}
 		}
@@ -204,12 +209,15 @@ public class ReservationStation {
 			switch(this.status){
 				case UNISSUED:
 					Execution.tryissue(this.Instr,this);
+					break;
 				case ISSUE:
 					Execution.tryexecute(this.Instr,this);
+					break;
 				case EXECUTE:
 					Execution.trywriteback(this.Instr,this);
-				//case WRITEBACK:
-				//	Execution.cleanup(this.Instr,this);
+					break;
+				default:
+					break;
 			}
 				
 		}
@@ -275,7 +283,7 @@ public class ReservationStation {
 	 */
 	public boolean isrunning() {
 		for(ReservationEntry rentry : _resentries)
-			if(rentry.status != STATUS.DONE) return false;
-		return true;
+			if(rentry.status != STATUS.DONE) return true;
+		return false;
 	}
 }
