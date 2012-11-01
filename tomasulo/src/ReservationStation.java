@@ -24,7 +24,7 @@ public class ReservationStation {
 	    UNISSUED, ISSUE, EXECUTE, WRITEBACK, DONE
 	}
 	
-	public static int clockcounter = 0;
+	public static int clockcounter = 1;
 
 	
 	static class Execution{
@@ -36,10 +36,7 @@ public class ReservationStation {
 		 * @param status
 		 */
 		public static void tryissue(Instruction inst,ReservationEntry entry){
-			if(entry.tryissueInstruction()){
-			}else{
-				Logger.getLogger("issue").log(Level.INFO, "issue stall");
-			}
+			entry.tryissueInstruction();
 			//TODO : here can issue by register renaming if addational registers are avaliable
 			//trick is it will need to scan instructions list for further name updates
 		}
@@ -52,10 +49,6 @@ public class ReservationStation {
 		public static void tryexecute(Instruction inst,ReservationEntry entry){
 			
 			if(entry.isReadyToExecut()){
-				//occupy the register
-				//instance._regmap.put(Integer.valueOf(inst.rs), entry);
-				//instance._regmap.put(Integer.valueOf(inst.rt), entry);
-				
 				Instruction myInstruction = inst;
 				String str;
 				 
@@ -136,10 +129,6 @@ public class ReservationStation {
 		                  break;
 		         }
 				entry.status = STATUS.EXECUTE;
-				
-				//release the registers
-				instance._regmap.remove(Integer.valueOf(inst.rs));
-				instance._regmap.remove(Integer.valueOf(inst.rt));
 			}else
 				Logger.getLogger("execute").log(Level.INFO, "execute stall");
 		}
@@ -205,12 +194,14 @@ public class ReservationStation {
 		public boolean tryissueInstruction(){
 			ReservationEntry dep = ReservationStation.getStation()._regmap.get(Integer.valueOf(Instr.rd));
 			if(dep == null || dep.status == STATUS.DONE){
+				Logger.getLogger("tryissue").log(Level.INFO, "try to ssue instruction sucess");
 				ReservationStation.getStation()._regmap.put(Integer.valueOf(Instr.rd), this);
 				this.status = STATUS.ISSUE;
 				rs = ReservationStation.getStation()._regmap.get(Integer.valueOf(Instr.rs));
 				rt = ReservationStation.getStation()._regmap.get(Integer.valueOf(Instr.rt));
 				return true;
-			}
+			}else
+				Logger.getLogger("tryissue").log(Level.INFO, "try to ssue instruction fail");
 			return false;
 		}
 		
@@ -220,6 +211,7 @@ public class ReservationStation {
 		 * @return
 		 */
 		public boolean isReadyToExecut(){
+			Logger.getLogger("isReadyToExecute").log(Level.INFO, "try to execute");
 			if(rs == null && rt == null) return true;
 			
 			if((rs != null && rs.status == STATUS.EXECUTE) || rs == this){
