@@ -2,6 +2,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
@@ -23,7 +24,7 @@ public class ReservationStation {
 	    UNISSUED, ISSUE, EXECUTE, WRITEBACK, DONE
 	}
 	
-	int clockcounter = 0;
+	public static int clockcounter = 0;
 
 	
 	static class Execution{
@@ -35,12 +36,10 @@ public class ReservationStation {
 		 * @param status
 		 */
 		public static void tryissue(Instruction inst,ReservationEntry entry){
-			ReservationEntry des = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rd));
-			
-			if(des == null)
-				entry.status = STATUS.ISSUE;
-			else
-				Logger.getLogger("issue").log(null, "issue stall");
+			if(entry.tryissueInstruction()){
+			}else{
+				Logger.getLogger("issue").log(Level.INFO, "issue stall");
+			}
 			//TODO : here can issue by register renaming if addational registers are avaliable
 			//trick is it will need to scan instructions list for further name updates
 		}
@@ -51,14 +50,11 @@ public class ReservationStation {
 		 * @param inst
 		 */
 		public static void tryexecute(Instruction inst,ReservationEntry entry){
-			ReservationStation instance = ReservationStation.getStation();
-			ReservationEntry reg1 = instance._regmap.get(Integer.valueOf(inst.rs));
-			ReservationEntry reg2 = instance._regmap.get(Integer.valueOf(inst.rt));
 			
-			if(reg1 == null && reg2 == null){
+			if(entry.isReadyToExecut()){
 				//occupy the register
-				instance._regmap.put(Integer.valueOf(inst.rs), entry);
-				instance._regmap.put(Integer.valueOf(inst.rt), entry);
+				//instance._regmap.put(Integer.valueOf(inst.rs), entry);
+				//instance._regmap.put(Integer.valueOf(inst.rt), entry);
 				
 				Instruction myInstruction = inst;
 				String str;
@@ -145,7 +141,7 @@ public class ReservationStation {
 				instance._regmap.remove(Integer.valueOf(inst.rs));
 				instance._regmap.remove(Integer.valueOf(inst.rt));
 			}else
-				Logger.getLogger("execute").log(null, "execute stall");
+				Logger.getLogger("execute").log(Level.INFO, "execute stall");
 		}
 		
 		/**
@@ -154,11 +150,10 @@ public class ReservationStation {
 		 * @param inst
 		 */
 		public static void trywriteback(Instruction inst,ReservationEntry entry){
-			ReservationEntry des = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rd));
+			//ReservationEntry des = ReservationStation.getStation()._regmap.get(Integer.valueOf(inst.rd));
 			
-			//if no one occupy destination register, take this
-			if(des == null){
-				ReservationStation.getStation()._regmap.put(Integer.valueOf(inst.rd), entry);
+			//if this instruction is the one who occupy register
+			//if(des == entry){
 				Instruction myInstruction = inst;
 				switch( myInstruction.opcode) {
 	            case 0:   // NOP
@@ -176,34 +171,74 @@ public class ReservationStation {
 	                    		//else
 	                       		//	str = "R"+myInstruction.rd+": "+myInstruction.rdValue;
 	                    		//lb.RF.replaceItem(str, myInstruction.rd);
+	                    		System.out.println(regFile.getValue(myInstruction.rd));
 	                  		}
 				}
 				entry.status = STATUS.DONE;
 				//release the register
 				ReservationStation.getStation()._regmap.remove(Integer.valueOf(inst.rd));
-			}else{
-				Logger.getLogger("writeback").log(null, "writeback stall");
-				return;
-			}
+			//}else
+			//	Logger.getLogger("writeback").log(Level.INFO, "writeback stall");
 		}
 	}
 	
 	class ReservationEntry{
 		int opcode;
 		Instruction Instr;
-		int qj;
-		int qk;
 		public STATUS status;
-		boolean rj;
-		boolean rk;
+		ReservationEntry rs;
+		ReservationEntry rt;
+		boolean qj;
+		boolean qk;
 		
 		public ReservationEntry(Instruction instroc){
 			Instr = instroc;
 			opcode = Instr.opcode;
-			this.qj = Instr.rs;
-			this.qk = Instr.rt;
 			this.status = STATUS.UNISSUED;
 		}
+		
+		/**
+		 * try to issue a instruction by checking if dest register has been occupied
+		 * if so , mark virtal dependecy otherwise issue this and occupy the register
+		 * @return
+		 */
+		public boolean tryissueInstruction(){
+			ReservationEntry dep = ReservationStation.getStation()._regmap.get(Integer.valueOf(Instr.rd));
+			if(dep == null || dep.status == STATUS.DONE){
+				ReservationStation.getStation()._regmap.put(Integer.valueOf(Instr.rd), this);
+				this.status = STATUS.ISSUE;
+				rs = ReservationStation.getStation()._regmap.get(Integer.valueOf(Instr.rs));
+				rt = ReservationStation.getStation()._regmap.get(Integer.valueOf(Instr.rt));
+				return true;
+			}
+			return false;
+		}
+		
+		/**
+		 * check if source registers are available to read
+		 * if so, read and execute
+		 * @return
+		 */
+		public boolean isReadyToExecut(){
+			if(rs == null && rt == null) return true;
+			
+			if((rs != null && rs.status == STATUS.EXECUTE) || rs == this){
+				qj = true;
+				if(rt == null || rt == this || rt.status == STATUS.EXECUTE)
+					return true;
+			}
+			
+			if((rt != null && rt.status == STATUS.EXECUTE) || rt == this){
+				qk = true;
+				if(rs == null || rs == this || rs.status == STATUS.EXECUTE)
+					return true;
+			}
+			if(qj == true && qk == true)
+				return true;
+			
+			return false;
+		} 
+		
 		
 		public void update(){
 			switch(this.status){
@@ -270,7 +305,8 @@ public class ReservationStation {
 	 * stages change
 	 */
 	public void step(){
-		clockcounter++;
+		System.out.print("current cycle");
+		System.out.println(clockcounter++);
 		//update all entries in this clock, hum, may be some entries is more reasonable
 		for(ReservationEntry rentry : _resentries)
 			rentry.update();
