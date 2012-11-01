@@ -21,7 +21,7 @@ import java.util.logging.Logger;
 public class ReservationStation {
 	
 	public enum STATUS {
-	    UNISSUED, ISSUE, EXECUTE, WRITEBACK, DONE
+	    UNISSUED, ISSUE, READ,EXECUTE, WRITEBACK, DONE
 	}
 	
 	public static int clockcounter = 1;
@@ -41,17 +41,28 @@ public class ReservationStation {
 			//trick is it will need to scan instructions list for further name updates
 		}
 		
+		public static void tryread(Instruction inst, ReservationEntry entry){
+			if(entry.isReadyToRead()){
+				
+				if(inst.isImmediate())
+					inst.rtValue = inst.immediate + regFile.getValue(inst.rd);
+				else
+					inst.rtValue = regFile.getValue(inst.rd);
+				
+				entry.status = STATUS.READ;
+			}
+		}
+		
 		/**
 		 * check if reading registers are occupied
 		 * if not okay to read
 		 * @param inst
 		 */
+		
 		public static void tryexecute(Instruction inst,ReservationEntry entry){
-			
-			if(entry.isReadyToExecut()){
+			if(entry.isReadyToRead()){
 				Instruction myInstruction = inst;
 				String str;
-				 
 		          switch(myInstruction.opcode) {
 		            case 24: // MUL -- 8 bit 
 		                  myInstruction.rdValue = (myInstruction.rsValue & 0x00FF) * 
@@ -160,7 +171,8 @@ public class ReservationStation {
 	                    		//else
 	                       		//	str = "R"+myInstruction.rd+": "+myInstruction.rdValue;
 	                    		//lb.RF.replaceItem(str, myInstruction.rd);
-	                    		System.out.println(regFile.getValue(myInstruction.rd));
+	                    		//System.out.println(regFile.getValue(myInstruction.rd));
+	                    		System.out.println(myInstruction.rdValue);
 	                  		}
 				}
 				entry.status = STATUS.DONE;
@@ -210,34 +222,36 @@ public class ReservationStation {
 		 * if so, read and execute
 		 * @return
 		 */
-		public boolean isReadyToExecut(){
-			Logger.getLogger("isReadyToExecute").log(Level.INFO, "try to execute");
+		public boolean isReadyToRead(){
 			if(rs == null && rt == null) return true;
 			
-			if((rs != null && rs.status == STATUS.EXECUTE) || rs == this){
+			if((rs != null && rs.status == STATUS.DONE) || rs == this){
 				qj = true;
-				if(rt == null || rt == this || rt.status == STATUS.EXECUTE)
+				if(rt == null || rt == this || rt.status == STATUS.DONE)
 					return true;
 			}
 			
-			if((rt != null && rt.status == STATUS.EXECUTE) || rt == this){
+			if((rt != null && rt.status == STATUS.DONE) || rt == this){
 				qk = true;
-				if(rs == null || rs == this || rs.status == STATUS.EXECUTE)
+				if(rs == null || rs == this || rs.status == STATUS.DONE)
 					return true;
 			}
 			if(qj == true && qk == true)
 				return true;
 			
 			return false;
-		} 
+		}
 		
 		
 		public void update(){
 			switch(this.status){
 				case UNISSUED:
-					Execution.tryissue(this.Instr,this);
+					Execution.tryissue(Instr, this);
 					break;
 				case ISSUE:
+					Execution.tryread(Instr, this);
+					break;
+				case READ:
 					Execution.tryexecute(this.Instr,this);
 					break;
 				case EXECUTE:
