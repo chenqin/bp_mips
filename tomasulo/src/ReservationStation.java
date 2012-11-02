@@ -29,7 +29,7 @@ public class ReservationStation {
 	
 	static class Execution{
 		public static MemoryType regFile = new MemoryType();
-		public static MemoryType mainMem = new MemoryType();
+		public static MemoryType memFile = new MemoryType();
 		/**
 		 * check if destination register is occupied, if not
 		 * okay to issue
@@ -44,19 +44,14 @@ public class ReservationStation {
 		
 		public static void tryread(Instruction inst, ReservationEntry entry){
 			if(entry.isReadyToRead()){
-				//TODO: check instruction type
+
 				if(inst.isImmediate()){
-					switch(inst.opcode){
-					case 35:
-						inst.rtValue = mainMem.getValue(inst.rs);
-						break;
-					default:
-						inst.rtValue = inst.immediate + regFile.getValue(inst.rd);
-						break;
-					}
-				}else
-					inst.rtValue = regFile.getValue(inst.rd);
-				
+					inst.rtValue = inst.immediate + regFile.getValue(inst.rt);
+					inst.rsValue = regFile.getValue(inst.rs);
+				}else{
+					inst.rtValue = regFile.getValue(inst.rt);
+					inst.rsValue = regFile.getValue(inst.rs);
+				}
 				entry.status = STATUS.READ;
 			}
 		}
@@ -87,11 +82,14 @@ public class ReservationStation {
 		                  myInstruction.rdValue = myInstruction.rsValue - myInstruction.rtValue; 
 		                  break;         
 		            case 35: // LW
+		            	myInstruction.rdValue = memFile.getValue(myInstruction.rsValue + myInstruction.immediate);
+		            	break;
 		            case 43: // SW
 		                  // rdValue becomes the memory address with which to load/store. 
 		                  // For SW, rtValue is the value to store into memory.
-		                  myInstruction.rdValue = myInstruction.rsValue + myInstruction.immediate; 
-		                  break;
+		                  myInstruction.rdValue = myInstruction.rsValue + myInstruction.immediate;
+		                  memFile.putValue(myInstruction.rtValue, myInstruction.rdValue);
+		                  break;         
 		            case 50: // SLL
 		                  myInstruction.rdValue = myInstruction.rsValue << myInstruction.rtValue;               
 		                  break;         
