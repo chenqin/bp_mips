@@ -89,7 +89,6 @@ public class Simulator
 	 * has completed execution.
 	 */
     public boolean step() {
-    	rs.step();
 		/**
 		 * indicates whether the first four stages of the pipeline all contain NOPs.
 		 */
